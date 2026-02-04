@@ -11,7 +11,7 @@
             padding: 0;
             height: 100%;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            overflow-x: hidden;
+            overflow-x: hidden; /* Prevent horizontal scrolling */
             scroll-behavior: smooth;
         }
 
@@ -27,8 +27,9 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            position: relative;
+            position: relative; /* CRITICAL: Keeps the No button inside this section */
             text-align: center;
+            overflow: hidden; /* Ensures button doesn't spawn outside borders */
         }
 
         h1 {
@@ -44,7 +45,6 @@
             width: 150px;
             height: auto;
             border-radius: 10px;
-            /* High z-index ensures the GIF stays on top of the growing button */
             position: relative; 
             z-index: 20; 
         }
@@ -53,12 +53,12 @@
         .buttons {
             margin-top: 30px;
             display: flex;
-            gap: 20px;
+            gap: 20px; /* Space between buttons */
             align-items: center;
             justify-content: center;
-            position: relative;
             width: 100%;
-            height: 100px; /* Reserved space for buttons */
+            height: 80px; /* Reserved height */
+            z-index: 15;
         }
 
         button {
@@ -68,23 +68,22 @@
             border-radius: 50px;
             cursor: pointer;
             font-weight: bold;
-            transition: transform 0.2s ease;
+            transition: transform 0.2s ease, opacity 0.3s ease;
+            white-space: nowrap; /* Prevents text wrapping */
         }
 
         #yesBtn {
             background-color: #ff4d4d;
             color: white;
-            z-index: 5; /* Lower than GIF */
-            /* Infinite Jump Animation */
+            z-index: 5; 
             animation: jump 1s infinite alternate;
         }
 
         #noBtn {
             background-color: white;
             color: #ff4d4d;
-            position: absolute; /* Allows movement */
             z-index: 15;
-            transition: opacity 0.2s; /* For teleport effect */
+            /* No position absolute initially so they sit side-by-side */
         }
 
         /* --- Animations --- */
@@ -93,7 +92,6 @@
             100% { transform: translateY(-10px) scale(1.05); }
         }
 
-        /* Teleport flash effect */
         .teleporting {
             opacity: 0;
             transform: scale(0.5);
@@ -101,9 +99,9 @@
 
         /* --- Section 2: The Video (Hidden initially) --- */
         #video-section {
-            display: none; /* Hidden until Yes is clicked */
+            display: none; 
             min-height: 100vh;
-            background-color: #ffc0cb; /* Pink Background */
+            background-color: #ffc0cb; 
             flex-direction: column;
             align-items: center;
             justify-content: center;
@@ -120,7 +118,7 @@
         }
 
         .message-box {
-            background-color: #fff0f5; /* Lavender/Light bg different from pink section */
+            background-color: #fff0f5; 
             color: #d63384;
             padding: 20px;
             border-radius: 15px;
@@ -130,7 +128,6 @@
             line-height: 1.5;
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
-
     </style>
 </head>
 <body>
@@ -164,62 +161,56 @@
 
     <script>
         let scaleFactor = 1;
+        let noClickCount = 0; // Counter for the clicks
         const yesBtn = document.getElementById('yesBtn');
         const noBtn = document.getElementById('noBtn');
         const landingPage = document.getElementById('landing-page');
 
-        // Logic to move the 'No' button
         function moveButton() {
+            noClickCount++;
+
+            // CHECK: If clicked 5 times, hide the button completely
+            if (noClickCount >= 5) {
+                noBtn.style.display = 'none';
+                return;
+            }
+
             // 1. Make Yes Button Bigger
             scaleFactor += 0.4;
-            // We use a separate transform for the scaling to not overwrite the jump animation
-            // However, since 'jump' uses transform, we must update the style directly carefully.
-            // A trick is to wrap the text or change width/font-size, but scale is smoothest.
-            // To avoid conflict with animation, we increase padding/font-size instead.
-            yesBtn.style.transform = `scale(${scaleFactor})`;
-            
-            // Ensure Yes button doesn't cover GIF (handled by z-index in CSS),
-            // but let's check max size so it doesn't break screen
             if (scaleFactor > 5) scaleFactor = 5;
-
+            // Apply scale to Yes button
+            yesBtn.style.transform = `scale(${scaleFactor})`;
 
             // 2. Teleport No Button
-            // Add teleport class for fade effect
             noBtn.classList.add('teleporting');
 
-            // Calculate random position within the landing page bounds
-            const maxX = window.innerWidth - noBtn.offsetWidth - 20;
-            const maxY = window.innerHeight - noBtn.offsetHeight - 20;
+            // Calculate boundaries relative to the LANDING PAGE (Page 1) only
+            // We subtract button size to ensure it doesn't clip off the edge
+            const maxX = landingPage.clientWidth - noBtn.offsetWidth - 20;
+            const maxY = landingPage.clientHeight - noBtn.offsetHeight - 20;
 
             const randomX = Math.random() * maxX;
             const randomY = Math.random() * maxY;
 
             setTimeout(() => {
+                // Change to absolute so it can move anywhere inside #landing-page
                 noBtn.style.position = 'absolute';
                 noBtn.style.left = randomX + 'px';
                 noBtn.style.top = randomY + 'px';
                 
-                // Remove teleport class to fade back in
                 noBtn.classList.remove('teleporting');
-            }, 100); // 100ms delay to sync with opacity drop
+            }, 100); 
         }
 
-        // Logic for 'Yes' button
         function acceptLove() {
             const videoSection = document.getElementById('video-section');
-            
-            // Show the hidden section
             videoSection.style.display = 'flex';
-
-            // Scroll down to it
             videoSection.scrollIntoView({ behavior: 'smooth' });
-
-            // Optional: Confetti or extra flair could go here!
         }
 
-        // Event Listeners specifically for mobile touch to prevent "clicking" No easily
+        // Mobile touch support
         noBtn.addEventListener('touchstart', (e) => {
-            e.preventDefault(); // Prevents the 'click' from firing easily
+            e.preventDefault();
             moveButton();
         });
 
